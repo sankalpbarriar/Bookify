@@ -1,5 +1,13 @@
-import { createContext, useContext } from "react";
-import {initializeApp} from 'firebase/app'
+import { createContext, useContext, useEffect, useState } from "react";
+import { initializeApp } from "firebase/app";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  onAuthStateChanged,
+} from "firebase/auth";
 
 const FirebaseContext = createContext(null);
 
@@ -18,11 +26,50 @@ const firebaseConfig = {
 };
 
 //custom hook
-export const useFirebase =()=> useContext(FirebaseContext);
+export const useFirebase = () => useContext(FirebaseContext);
 
-const firebaseApp=initializeApp(firebaseConfig);  //instance of firebase app
+const firebaseApp = initializeApp(firebaseConfig); //instance of firebase app
+const firebaseAuth = getAuth(firebaseApp);
+const googleProvider = new GoogleAuthProvider();
 
 //Provider
 export const FirebaseProvider = (props) => {
-  return <FirebaseContext.Provider>{props.children}</FirebaseContext.Provider>;
+  const [user, setUser] = useState(null);
+  useEffect(() => {
+    onAuthStateChanged(
+      firebaseAuth,
+      (user) => {
+        if (user) setUser(user);
+        else setUser(null);
+        console.log("User", user);
+      },
+      []
+    );
+  });
+  // Function to create user
+  const signupUserWithEmailAndPassword = (email, password) => {
+    return createUserWithEmailAndPassword(firebaseAuth, email, password);
+  };
+
+  // Function to sign in user
+  const signinUserWithEmailAndPassword = (email, password) => {
+    return signInWithEmailAndPassword(firebaseAuth, email, password);
+  };
+
+  const signInWithGoogle = () => signInWithPopup(firebaseAuth, googleProvider);
+
+  const isLogedIn = user ? true : false;
+
+  return (
+    <FirebaseContext.Provider
+      value={{
+        signupUserWithEmailAndPassword,
+        signinUserWithEmailAndPassword,
+        signInWithGoogle,
+        isLogedIn,
+      }}
+    >
+      {props.children}
+    </FirebaseContext.Provider>
+  );
 };
